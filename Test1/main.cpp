@@ -20,6 +20,7 @@ int main()
     vector<string> orig_exp; //original expressions
     vector<string> rev_polish[10][10]; //Boolean Reverse Polish (RPN) format
     string precedence("()~&|@%^");
+
     bool saved;
 
     while(cin>>cmd)
@@ -70,6 +71,7 @@ int main()
 
 bool conjunction(bool x, bool y) // &
 {
+
     return 0;
 }
 
