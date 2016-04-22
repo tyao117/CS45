@@ -8,36 +8,40 @@
 
 using namespace std;
 
-typedef unsigned char byte;
+typedef char byte;
 
 bool getInput(string &line);
 void trim(string &line);
 bool parseNumber(const string &line, vector<byte> &bigNum);
 bool parseOperator(const string &line, char &op);
-void processLine(const string &line, vector<byte> memory[]);
-void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> bigNumAns);
-void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> bigNumAns);
+void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[]);
+void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
+void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void multiply(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns);
-void incrementUp(vector<byte> bigNumAns);
-void divide(vector<byte> bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns);
+void divide(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+void incrementUp(vector<byte> &bigNumAns);
 bool lessThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool greaterThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool equals(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool isNegative(const vector<byte> &bigNum);
-void displayAllMemory(const vector<byte> memory[]);
+void displayAllMemory(const vector<byte> memory[], const vector<byte> memoryRemainder[]);
 void outputNumber(ostream &out, const vector<byte> &bigNum);
-bool loadFromFile(const string &fileName, vector<byte> memory[]);
-void saveToFile(const string &fileName, const vector<byte> memory[]);
+bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> memoryRemainder[]);
+void saveToFile(const string &fileName, const vector<byte> memory[], const vector<byte> memoryRemainder[]);
+void clearMemories(vector<byte> memory[], vector<byte> memoryRemainder[]);
 void help();
 
 int main()
 {
     vector<byte> memory[26];
+    vector<byte> memoryRemainder[26];
     string line;
+    clearMemories(memory, memoryRemainder);
     while(getInput(line))
     {
 //        trim(line);
-        processLine(line, memory);
+        processLine(line, memory, memoryRemainder);
     }
     return 0;
 }
@@ -73,11 +77,12 @@ bool getInput(string &line)
 //    }
 //}
 
-void processLine(const string &line, vector<byte> memory[])
+void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[])
 {
     vector<byte> bigNum;
     vector<byte> bigNum2;
     vector<byte> bigNumAns;
+    char op;
     stringstream ss;
     string action;
     ss << line;
@@ -86,10 +91,51 @@ void processLine(const string &line, vector<byte> memory[])
     if(action == "LET")
     {
         char variableStore;
+        string parse;
         ss >> variableStore;
+        variableStore =  toupper(variableStore);
         if(ss.str().find(" = "))
         {
             ss.ignore(3);
+            for(unsigned int i = 0; i < 3; ++i)
+            {
+                if(ss.eof())
+                {
+                    cout << "Invalid expression.\n";
+                    return;
+                }
+                ss >> parse;
+                switch(i)
+                {
+                case 0:
+                {
+                    parseNumber(parse, bigNum);
+                    break;
+                }
+                case 1:
+                {
+                    parseOperator(parse, op);
+                    break;
+                }
+                case 2:
+                {
+                    parseNumber(parse, bigNum2);
+                    break;
+                }
+                }
+            }
+            outputNumber(cout, bigNum);
+            cout << endl;
+            cout << op << endl;
+            outputNumber(cout, bigNum2);
+            cout << endl;
+            performOperation(bigNum, op, bigNum2, memory[variableStore - 'A'], memoryRemainder[variableStore - 'A']);
+            cout << "done\n";
+        }
+        else
+        {
+            cout << "Invalid expression.\n";
+            return;
         }
         return;
     }
@@ -99,7 +145,9 @@ void processLine(const string &line, vector<byte> memory[])
         ss >> memLocation;
         if(isalpha(memLocation))
         {
-            outputNumber(cout, memory[toupper(memLocation) - 65]);
+            outputNumber(cout, memory[toupper(memLocation) - 'A']);
+            cout << " Remainder: ";
+            outputNumber(cout, memoryRemainder[toupper(memLocation) - 'A']);
             cout << endl;
         }
         else
@@ -110,7 +158,7 @@ void processLine(const string &line, vector<byte> memory[])
     }
     if(action == "LIST")
     {
-        displayAllMemory(memory);
+        displayAllMemory(memory, memoryRemainder);
         return;
     }
     if(action == "LOAD")
@@ -118,7 +166,7 @@ void processLine(const string &line, vector<byte> memory[])
         string fileName;
         ss >> ws;
         getline(ss, fileName);
-        loadFromFile(fileName, memory);
+        loadFromFile(fileName, memory, memoryRemainder);
         return;
     }
     if(action == "SAVE")
@@ -126,7 +174,7 @@ void processLine(const string &line, vector<byte> memory[])
         string fileName;
         ss >> ws;
         getline(ss, fileName);
-        saveToFile(fileName, memory);
+        saveToFile(fileName, memory, memoryRemainder);
         return;
     }
     if(action == "EDIT")
@@ -148,6 +196,37 @@ void processLine(const string &line, vector<byte> memory[])
 //    parseLine(line, bigNum) && parseLine(line, op) && parseLine(line, bigNum2);
 }
 
+void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &binNumAnsRemainder)
+{
+    switch(op)
+    {
+    case '+':
+    {
+        add(bigNum, bigNum2, bigNumAns);
+        break;
+    }
+    case '-':
+    {
+        subtract(bigNum, bigNum2, bigNumAns);
+        break;
+    }
+    case '*':
+    {
+        multiply(bigNum, bigNum2, bigNumAns);
+        break;
+    }
+    case '/':
+    {
+        divide(bigNum, bigNum2, bigNumAns, binNumAnsRemainder);
+        break;
+    }
+    default:
+    {
+        cout << "Unknown operator.\n";
+    }
+    }
+}
+
 bool parseNumber(const string &line, vector<byte> &bigNum)
 {
     for(unsigned int i = line.length(); i > 0;)
@@ -163,11 +242,17 @@ bool parseNumber(const string &line, vector<byte> &bigNum)
 
 bool parseOperator(const string &line, char &op)
 {
-
+    if(line.length() == 1)
+    {
+        op = line[0];
+        return true;
+    }
+    return false;
 }
 
-void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> bigNumAns)
+void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns)
 {
+    bigNumAns.resize(0);
     byte carry = 0;
     unsigned int minSize = min(bigNum.size(), bigNum2.size());
     for(unsigned int i = 0; i < minSize; ++i)
@@ -187,8 +272,9 @@ void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> bigNumAns)
     }
 }
 
-void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> bigNumAns)
+void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns)
 {
+    bigNumAns.resize(0);
     byte carry = 0;
     bool negative = false;
     unsigned int minSize = min(bigNum.size(), bigNum2.size());
@@ -225,6 +311,7 @@ void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> bigNumAns)
 
 void multiply(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns)
 {
+    bigNumAns.resize(0);
     byte carry = 0;
     byte total = 0;
     for(size_t i = 0; i < bigNum2.size(); ++i)
@@ -233,7 +320,7 @@ void multiply(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<by
         {
             total = bigNum[i] * bigNum2[j];
         }
-        total = total + bigNum[0] * bigNum2[i];
+        total = total + bigNum[0] * bigNum2[i] + carry;
         carry = total / 10;
         bigNumAns.push_back(total % 10);
     }
@@ -243,10 +330,17 @@ void multiply(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<by
         carry = total / 10;
         bigNumAns.push_back(total);
     }
+    if(carry)
+    {
+        bigNumAns.push_back(carry);
+    }
 }
 
-void divide(vector<byte> bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns)
+void divide(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
 {
+    bigNumAns.resize(1);
+    bigNumAns[0] = 0;
+    bigNumAnsRemainder.resize(0);
     int negative = 1;
     if(isNegative(bigNum))
     {
@@ -256,19 +350,21 @@ void divide(vector<byte> bigNum, const vector<byte> &bigNum2, vector<byte> &bigN
     {
         negative *= -1;
     }
-    while(bigNum > bigNum2)
+    bigNumAnsRemainder = bigNum;
+    while(greaterThan(bigNumAnsRemainder, bigNum2) || equals(bigNumAnsRemainder, bigNum2))
     {
-        subtract(bigNum, bigNum2, bigNum);
+        subtract(bigNumAnsRemainder, bigNum2, bigNumAnsRemainder);
+        outputNumber(cout, bigNumAnsRemainder);
         incrementUp(bigNumAns);
     }
     bigNumAns[bigNumAns.size() - 1] *= negative;
 }
 
-void incrementUp(vector<byte> bigNumAns)
+void incrementUp(vector<byte> &bigNumAns)
 {
     if(!bigNumAns.size())
     {
-        bigNumAns.push_back(1);
+        bigNumAns.push_back(0);
     }
     for(unsigned int i = 0; !(++bigNumAns[i] %= 10); ++i);
 }
@@ -326,39 +422,43 @@ bool isNegative(const vector<byte> &bigNum)
     return bigNum[bigNum.size() - 1] < 0;
 }
 
-void displayAllMemory(const vector<byte> memory[])
+void displayAllMemory(const vector<byte> memory[], const vector<byte> memoryRemainder[])
 {
     for(int i = 0; i < 26; ++i)
     {
         cout << char(i+65) << " = ";
         outputNumber(cout, memory[i]);
+        cout << " Remainder: ";
+        outputNumber(cout, memoryRemainder[i]);
         cout << endl;
     }
 }
 
 void outputNumber(ostream &out, const vector<byte> &bigNum)
 {
-    if(bigNum.size())
-    {
+//    if(bigNum.size())
+//    {
         for(int i = bigNum.size(); i > 0;)
         {
-            out << bigNum[--i];
+            out << (short int)bigNum[--i];
             if(!(i % 3) && i)
             {
                 out << ",";
             }
         }
-    }
-    else
-    {
-        cout << "Nothing is here";
-    }
+//    }
+//    else
+//    {
+//        cout << "Nothing is here";
+//    }
 }
 
-bool loadFromFile(const string &fileName, vector<byte> memory[])
+bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> memoryRemainder[])
 {
+    clearMemories(memory, memoryRemainder);
     ifstream infile;
     string number;
+    size_t remainderPos;
     infile.open(fileName.c_str());
     if(infile.fail())
     {
@@ -367,23 +467,41 @@ bool loadFromFile(const string &fileName, vector<byte> memory[])
     }
     for(int i = 0; !infile.eof() && i < 26; ++i)
     {
-        infile >> number;
-        parseNumber(number, memory[i]);
+        getline(infile, number);
+        remainderPos = number.find_first_of(" ");
+        parseNumber(number.substr(0, remainderPos), memory[i]);
+        if(remainderPos < string::npos)
+        {
+            parseNumber(number.substr(remainderPos), memoryRemainder[i]);
+        }
     }
     infile.close();
     return true;
 }
 
-void saveToFile(const string &fileName, const vector<byte> memory[])
+void saveToFile(const string &fileName, const vector<byte> memory[], const vector<byte> memoryRemainder[])
 {
     ofstream outfile;
     outfile.open(fileName.c_str());
     for(int i = 0; i < 26; ++i)
     {
         outputNumber(outfile, memory[i]);
+        outfile << " ";
+        outputNumber(outfile, memoryRemainder[i]);
     }
     outfile.close();
     return;
+}
+
+void clearMemories(vector<byte> memory[], vector<byte> memoryRemainder[])
+{
+    for(unsigned int i = 0; i < 26; ++i)
+    {
+        memory[i].resize(1);
+        memory[i][0] = 0;
+        memoryRemainder[i].resize(1);
+        memoryRemainder[i][0] = 0;
+    }
 }
 
 void help()
@@ -392,4 +510,3 @@ void help()
     cout <<"List of actions:\n"
          <<endl;
 }
-
