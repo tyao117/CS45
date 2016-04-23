@@ -12,9 +12,9 @@ typedef char byte;
 
 bool getInput(string &line);
 void trim(string &line);
-bool parseNumber(const string &line, vector<byte> &bigNum);
+bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> memory[], const vector<byte> memoryRemainder[]);
 bool parseOperator(const string &line, char &op);
-void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[]);
+void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[], bool &save);
 void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
@@ -23,8 +23,14 @@ void divide(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte
 void incrementUp(vector<byte> &bigNumAns);
 bool lessThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool greaterThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
+bool greaterThanEquals(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool equals(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool isNegative(const vector<byte> &bigNum);
+void factorial(vector<byte> bigNum, vector<byte> &bigNumAns);
+void decrement(vector<byte> &bigNumAns);
+void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+void permutations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+void gcd(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns);
 void displayAllMemory(const vector<byte> memory[], const vector<byte> memoryRemainder[]);
 void outputNumber(ostream &out, const vector<byte> &bigNum);
 bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> memoryRemainder[]);
@@ -37,11 +43,12 @@ int main()
     vector<byte> memory[26];
     vector<byte> memoryRemainder[26];
     string line;
+    bool saved = true;
     clearMemories(memory, memoryRemainder);
     while(getInput(line))
     {
 //        trim(line);
-        processLine(line, memory, memoryRemainder);
+        processLine(line, memory, memoryRemainder, saved);
     }
     return 0;
 }
@@ -77,7 +84,7 @@ bool getInput(string &line)
 //    }
 //}
 
-void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[])
+void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[], bool &saved)
 {
     vector<byte> bigNum;
     vector<byte> bigNum2;
@@ -109,7 +116,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
                 {
                 case 0:
                 {
-                    parseNumber(parse, bigNum);
+                    parseNumber(parse, bigNum, memory, memoryRemainder);
                     break;
                 }
                 case 1:
@@ -119,7 +126,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
                 }
                 case 2:
                 {
-                    parseNumber(parse, bigNum2);
+                    parseNumber(parse, bigNum2, memory, memoryRemainder);
                     break;
                 }
                 }
@@ -131,6 +138,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
             cout << endl;
             performOperation(bigNum, op, bigNum2, memory[variableStore - 'A'], memoryRemainder[variableStore - 'A']);
             cout << "done\n";
+            saved = false;
         }
         else
         {
@@ -175,6 +183,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
         ss >> ws;
         getline(ss, fileName);
         saveToFile(fileName, memory, memoryRemainder);
+        saved = true;
         return;
     }
     if(action == "EDIT")
@@ -183,21 +192,44 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     }
     if(action == "EXIT" || action == "QUIT")
     {
+        if(!saved)
+        {
+            string reply;
+            cout << "Would you like to save the values stored in memory before exiting?(Yes/No)\n";
+            cin >> reply;
+            while(toupper(reply[0]) != 'Y' && toupper(reply[0]) != 'N')
+            {
+                cout << "Invalid input, please try again.\n";
+                cin >> reply;
+            }
+            if(toupper(reply[0]) == 'Y')
+            {
+                cout << "What would you like to save the file name as?\n";
+                cin.ignore();
+                getline(cin, reply);
+                saveToFile(reply, memory, memoryRemainder);
+            }
+        }
+        exit(0);
         return;
     }
     if(action == "WEXIT" || action == "WQUIT")
     {
+        string fileName;
+        ss >> ws;
+        getline(ss, fileName);
+        saveToFile(fileName, memory, memoryRemainder);
+        exit(0);
         return;
     }
-    else
-    {
-        help();
-    }
+    help();
+    return;
 //    parseLine(line, bigNum) && parseLine(line, op) && parseLine(line, bigNum2);
 }
 
 void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &binNumAnsRemainder)
 {
+    
     switch(op)
     {
     case '+':
@@ -227,8 +259,18 @@ void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2,
     }
 }
 
-bool parseNumber(const string &line, vector<byte> &bigNum)
+bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> memory[], const vector<byte> memoryRemainder[])
 {
+    if(line.length() == 1 && isalpha(line[0]))
+    {
+        int memoryLocation = toupper(line[0]) - 'A';
+        if(greaterThan(memoryRemainder[memoryLocation], vector<byte>(1, 0)))
+        {
+            return false;
+        }
+        bigNum = memory[memoryLocation];
+        return true;
+    }
     for(unsigned int i = line.length(); i > 0;)
     {
         if(!isdigit(line[--i]))
@@ -351,7 +393,7 @@ void divide(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte
         negative *= -1;
     }
     bigNumAnsRemainder = bigNum;
-    while(greaterThan(bigNumAnsRemainder, bigNum2) || equals(bigNumAnsRemainder, bigNum2))
+    while(greaterThanEquals(bigNumAnsRemainder, bigNum2))
     {
         subtract(bigNumAnsRemainder, bigNum2, bigNumAnsRemainder);
         outputNumber(cout, bigNumAnsRemainder);
@@ -366,7 +408,13 @@ void incrementUp(vector<byte> &bigNumAns)
     {
         bigNumAns.push_back(0);
     }
-    for(unsigned int i = 0; !(++bigNumAns[i] %= 10); ++i);
+    unsigned int i = 0;
+    unsigned int end = bigNumAns.size();
+    for(; i < end && !(++bigNumAns[i] %= 10); ++i);
+    if(i == end)
+    {
+        bigNumAns.push_back(1);
+    }
 }
 
 bool lessThan(const vector<byte> &bigNum, const vector<byte> &bigNum2)
@@ -417,9 +465,94 @@ bool equals(const vector<byte> &bigNum, const vector<byte> &bigNum2)
     return false;
 }
 
+bool greaterThanEquals(const vector<byte> &bigNum, const vector<byte> &bigNum2)
+{
+    if(bigNum.size() == bigNum2.size())
+    {
+        for(unsigned int i = bigNum.size(); i > 0;)
+        {
+            if(bigNum[--i] == bigNum2[i] && i)
+            {
+                continue;
+            }
+            return bigNum[i] >= bigNum2[i];
+        }
+    }
+    return bigNum.size() > bigNum2.size();
+}
+
+
 bool isNegative(const vector<byte> &bigNum)
 {
     return bigNum[bigNum.size() - 1] < 0;
+}
+
+void factorial(vector<byte> bigNum, vector<byte> &bigNumAns)
+{
+    if(equals(bigNum, vector<byte>(1, 0)))
+    {
+        bigNumAns = vector<byte>(1, 1);
+    }
+    bigNumAns = bigNum;
+    while(greaterThan(bigNum, vector<byte>(1, 0)))
+    {
+        decrement(bigNum);
+        multiply(bigNumAns, bigNum, bigNumAns);
+    }
+}
+
+void decrement(vector<byte> &bigNumAns)
+{
+    for(unsigned int i = 0, end = bigNumAns.size(); i < end; ++i)
+    {
+        if(bigNumAns[i] == 0)
+        {
+            if(i == end - 1 && bigNumAns[i] == 1)
+            {
+                bigNumAns.pop_back();
+            }
+            bigNumAns[i] = 9;
+            continue;
+        }
+        --bigNumAns[i];
+    }
+}
+
+void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
+{
+    vector<byte> numerator;
+    vector<byte> denominator;
+    factorial(bigNum, numerator);
+    subtract(bigNum, bigNum2, denominator);
+    factorial(denominator, denominator);
+    divide(numerator, denominator, bigNumAns, bigNumAnsRemainder);
+}
+
+void permutations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
+{
+    vector<byte> numerator;
+    vector<byte> denominator;
+    factorial(bigNum, numerator);
+    subtract(bigNum, bigNum2, denominator);
+    factorial(denominator, denominator);
+    multiply(bigNum2, denominator, denominator);
+    divide(numerator, denominator, bigNumAns, bigNumAnsRemainder);
+}
+
+void gcd(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns)
+{
+    vector<byte> numbers[2] = {bigNum, bigNum2};
+    vector<byte> junk;
+    unsigned int i = 0;
+    if(greaterThan(numbers[0], vector<byte>(1,0)) && greaterThan(numbers[1], vector<byte>(1,0)))
+    {
+        for(; greaterThan(numbers[(i + 1) % 2], vector<byte>(1,0)); i = ++i % 2)
+        {
+            divide(numbers[i], numbers[(i + 1) % 2], junk, numbers[i]);
+        }
+        bigNumAns = numbers[i];
+    }
+    return;
 }
 
 void displayAllMemory(const vector<byte> memory[], const vector<byte> memoryRemainder[])
@@ -469,10 +602,10 @@ bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> me
     {
         getline(infile, number);
         remainderPos = number.find_first_of(" ");
-        parseNumber(number.substr(0, remainderPos), memory[i]);
+        parseNumber(number.substr(0, remainderPos), memory[i], memory, memoryRemainder);
         if(remainderPos < string::npos)
         {
-            parseNumber(number.substr(remainderPos), memoryRemainder[i]);
+            parseNumber(number.substr(remainderPos), memoryRemainder[i], memory, memoryRemainder);
         }
     }
     infile.close();
