@@ -18,7 +18,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
 void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
-void multiply(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns);
+void multiply(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void divide(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void incrementUp(vector<byte> &bigNumAns);
 bool lessThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
@@ -26,6 +26,7 @@ bool greaterThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool greaterThanEquals(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool equals(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool isNegative(const vector<byte> &bigNum);
+void removeLeadingZero(vector<byte> &bigNumAns);
 void factorial(vector<byte> bigNum, vector<byte> &bigNumAns);
 void decrement(vector<byte> &bigNumAns);
 void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
@@ -371,7 +372,8 @@ void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns
     }
     for(unsigned int i = 0; i < minSize; ++i)
     {
-        bigNum2[i] += carry--;
+        bigNum2[i] += carry;
+        carry = 0;
         if(bigNum[i] < bigNum2[i])
         {
             bigNum[i] += 10;
@@ -383,7 +385,15 @@ void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns
     {
         if(carry)
         {
-            bigNumAns.push_back(bigNum[i] - carry--);
+            if(bigNum[i] < carry)
+            {
+                bigNum[i] += 10;
+                bigNumAns.push_back(bigNum[i] - carry);
+            }
+            else
+            {
+                bigNumAns.push_back(bigNum[i] - carry--);
+            }
         }
         else
         {
@@ -394,24 +404,32 @@ void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns
     {
         bigNumAns[bigNumAns.size() - 1] *= -1;
     }
+    removeLeadingZero(bigNumAns);
 }
 
-void multiply(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns)
+void multiply(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns)
 {
     bigNumAns.resize(0);
     byte carry = 0;
     byte total = 0;
+    if(bigNum.size() > bigNum2.size())
+    {
+        vector<byte> temp = bigNum;
+        bigNum = bigNum2;
+        bigNum2 = temp;
+    }
     for(size_t i = 0; i < bigNum2.size(); ++i)
     {
-        for(size_t j = min(bigNum.size() - 1, i); j-- > 0;)
+        total = 0;
+        for(size_t j = min(bigNum.size() - 1, i), k = min(bigNum.size() - 1, i); k > 0; --k)
         {
-            total = bigNum[i] * bigNum2[j];
+            total = bigNum[j] * bigNum2[i - k];
         }
         total = total + bigNum[0] * bigNum2[i] + carry;
         carry = total / 10;
         bigNumAns.push_back(total % 10);
     }
-    for(unsigned int i = 1, last = bigNum2.size() - 1; i < bigNum.size() - 1; ++i)
+    for(unsigned int i = 1, last = bigNum2.size() - 1; i < bigNum.size(); ++i)
     {
         total = bigNum2[last] * bigNum[i] + carry % 10;
         carry = total / 10;
@@ -442,6 +460,7 @@ void divide(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte
     {
         subtract(bigNumAnsRemainder, bigNum2, bigNumAnsRemainder);
         outputNumber(cout, bigNumAnsRemainder);
+        cout << "\n";
         incrementUp(bigNumAns);
     }
     bigNumAns[bigNumAns.size() - 1] *= negative;
@@ -530,6 +549,21 @@ bool greaterThanEquals(const vector<byte> &bigNum, const vector<byte> &bigNum2)
 bool isNegative(const vector<byte> &bigNum)
 {
     return bigNum[bigNum.size() - 1] < 0;
+}
+
+void removeLeadingZero(vector<byte> &bigNumAns)
+{
+    for(int i = bigNumAns.size(); i > 0;)
+    {
+        if(bigNumAns[--i] == 0)
+        {
+            bigNumAns.pop_back();
+        }
+        else
+        {
+            break;
+        }
+    }
 }
 
 void factorial(vector<byte> bigNum, vector<byte> &bigNumAns)
