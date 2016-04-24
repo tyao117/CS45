@@ -89,16 +89,57 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     vector<byte> bigNum;
     vector<byte> bigNum2;
     vector<byte> bigNumAns;
+    vector<byte> bigNumAnsRemainder = vector<byte>(1, 0);
     char op;
     stringstream ss;
     string action;
     ss << line;
     ss >> action;
+    if(parseNumber(action, bigNum, memory, memoryRemainder))
+    {
+        string parse;
+        bool invalidInput = false;
+        for(unsigned int i = 0; i < 2; ++i)
+        {
+            if(ss.eof())
+            {
+                cout << "Invalid expression.\n";
+                return;
+            }
+            ss >> parse;
+            switch(i)
+            {
+            case 0:
+            {
+                invalidInput = !parseOperator(parse, op);
+                break;
+            }
+            case 1:
+            {
+                invalidInput = !parseNumber(parse, bigNum2, memory, memoryRemainder);
+                break;
+            }
+            }
+            if(invalidInput)
+            {
+                cout << "Invalid Operator or Operand.\n";
+                return;
+            }
+        }
+        performOperation(bigNum, op, bigNum2, bigNumAns, bigNumAnsRemainder);
+        cout << "Output: ";
+        outputNumber(cout, bigNumAns);
+        cout << " remainder: ";
+        outputNumber(cout, bigNumAnsRemainder);
+        cout << endl;
+        return;
+    }
     cout << action << endl;
     if(action == "LET")
     {
         char variableStore;
         string parse;
+        bool invalidInput = false;
         ss >> variableStore;
         variableStore =  toupper(variableStore);
         if(ss.str().find(" = "))
@@ -116,19 +157,24 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
                 {
                 case 0:
                 {
-                    parseNumber(parse, bigNum, memory, memoryRemainder);
+                    invalidInput = !parseNumber(parse, bigNum, memory, memoryRemainder);
                     break;
                 }
                 case 1:
                 {
-                    parseOperator(parse, op);
+                    invalidInput = !parseOperator(parse, op);
                     break;
                 }
                 case 2:
                 {
-                    parseNumber(parse, bigNum2, memory, memoryRemainder);
+                    invalidInput = !parseNumber(parse, bigNum2, memory, memoryRemainder);
                     break;
                 }
+                }
+                if(invalidInput)
+                {
+                    cout << "Invalid Operator or Operand.\n";
+                    return;
                 }
             }
             outputNumber(cout, bigNum);
@@ -224,7 +270,6 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     }
     help();
     return;
-//    parseLine(line, bigNum) && parseLine(line, op) && parseLine(line, bigNum2);
 }
 
 void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &binNumAnsRemainder)
