@@ -319,7 +319,13 @@ bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> me
     }
     for(unsigned int i = line.length(); i > 0;)
     {
-        if(!isdigit(line[--i]))
+        --i;
+        if(line[i] == '-' && !i)
+        {
+            bigNum[bigNum.size() - 1] *= -1;
+            continue;
+        }
+        if(!isdigit(line[i]))
         {
             return false;
         }
@@ -364,45 +370,44 @@ void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns
 {
     bigNumAns.resize(0);
     byte carry = 0;
-    bool negative = false;
     unsigned int minSize = min(bigNum.size(), bigNum2.size());
     if(lessThan(bigNum, bigNum2))
     {
-        negative = true;
+        subtract(bigNum2, bigNum, bigNumAns);
+        bigNumAns[bigNumAns.size() - 1] *= -1;
     }
-    for(unsigned int i = 0; i < minSize; ++i)
+    else
     {
-        bigNum2[i] += carry;
-        carry = 0;
-        if(bigNum[i] < bigNum2[i])
+        for(unsigned int i = 0; i < minSize; ++i)
         {
-            bigNum[i] += 10;
-            carry = 1;
-        }
-        bigNumAns.push_back((bigNum[i] - bigNum2[i]));
-    }
-    for(unsigned int i = minSize; i < bigNum.size(); ++i)
-    {
-        if(carry)
-        {
-            if(bigNum[i] < carry)
+            bigNum2[i] += carry;
+            carry = 0;
+            if(bigNum[i] < bigNum2[i])
             {
                 bigNum[i] += 10;
-                bigNumAns.push_back(bigNum[i] - carry);
+                carry = 1;
+            }
+            bigNumAns.push_back((bigNum[i] - bigNum2[i]));
+        }
+        for(unsigned int i = minSize; i < bigNum.size(); ++i)
+        {
+            if(carry)
+            {
+                if(bigNum[i] < carry)
+                {
+                    bigNum[i] += 10;
+                    bigNumAns.push_back(bigNum[i] - carry);
+                }
+                else
+                {
+                    bigNumAns.push_back(bigNum[i] - carry--);
+                }
             }
             else
             {
-                bigNumAns.push_back(bigNum[i] - carry--);
+                bigNumAns.push_back(bigNum[i]);
             }
         }
-        else
-        {
-            bigNumAns.push_back(bigNum[i]);
-        }
-    }
-    if(negative)
-    {
-        bigNumAns[bigNumAns.size() - 1] *= -1;
     }
     removeLeadingZero(bigNumAns);
 }
@@ -553,9 +558,10 @@ bool isNegative(const vector<byte> &bigNum)
 
 void removeLeadingZero(vector<byte> &bigNumAns)
 {
-    for(int i = bigNumAns.size(); i > 0;)
+    for(int i = bigNumAns.size(); i > 1;)
     {
-        if(bigNumAns[--i] == 0)
+        --i;
+        if(bigNumAns[i] == 0)
         {
             bigNumAns.pop_back();
         }
