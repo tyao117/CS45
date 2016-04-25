@@ -579,7 +579,7 @@ void factorial(vector<byte> bigNum, vector<byte> &bigNumAns)
         bigNumAns = vector<byte>(1, 1);
     }
     bigNumAns = bigNum;
-    while(greaterThan(bigNum, vector<byte>(1, 0)))
+    while(greaterThan(bigNum, vector<byte>(1, 1)))
     {
         decrement(bigNum);
         multiply(bigNumAns, bigNum, bigNumAns);
