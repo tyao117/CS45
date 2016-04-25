@@ -725,13 +725,13 @@ void clearMemories(vector<byte> memory[], vector<byte> memoryRemainder[])
 void help()
 {
     cout << "Help!!!\n";
-    cout <<"List of actions:
-         <<LIST: List all the save memorys
-         <<SET [A-Z] [Expression]: Sets the value of the memory
-         <<EDIT [A-Z] [Expression]: TBC
-         <<SHOW [A-Z]: Shows the current value of the memory
-         <<SAVE [filename]: saves the memories to the file to the filename
-         <<LOAD [filename]: loads the memories from the filename to the program
-         <<\n"
+    cout <<"List of actions:\n"
+         <<"LIST: List all the save memorys\n"
+         <<"SET [A-Z] [Expression]: Sets the value of the memory\n"
+         <<"EDIT [A-Z] [Expression]: TBC\n"
+         <<"SHOW [A-Z]: Shows the current value of the memory\n"
+         <<"SAVE [filename]: saves the memories to the file to the filename\n"
+         <<"LOAD [filename]: loads the memories from the filename to the program\n"
+         <<"\n"
          <<endl;
 }
