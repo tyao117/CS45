@@ -15,11 +15,11 @@ void trim(string &line);
 bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> memory[], const vector<byte> memoryRemainder[]);
 bool parseOperator(const string &line, char &op);
 void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[], bool &save);
-void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+bool performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void multiply(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
-void divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void incrementUp(vector<byte> &bigNumAns);
 bool lessThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
 bool greaterThan(const vector<byte> &bigNum, const vector<byte> &bigNum2);
@@ -41,8 +41,8 @@ void help();
 
 int main()
 {
-    vector<byte> memory[26];
-    vector<byte> memoryRemainder[26];
+    vector<byte> memory[26]; //change this into an array of string
+    vector<byte> memoryRemainder[26]; //change this into an array of string
     string line;
     bool saved = true;
     clearMemories(memory, memoryRemainder);
@@ -77,9 +77,9 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     char op;
     stringstream ss;
     string action;
-    int functionFound;
+    unsigned int functionFound;
     ss << line;
-    if((functionFound = ss.str().find_first_of("(!")) < string::npos)
+    if((functionFound = ss.str().find_first_of("(")) < string::npos)
     {
         action = ss.str().substr(0, functionFound);
         ss.ignore(functionFound);
@@ -88,13 +88,18 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     {
         ss >> action;
     }
+    if((functionFound = action.find_first_of("!")) != string::npos)
+    {
+        action = action.substr(0, functionFound);
+        ss.putback('!');
+    }
     if(parseNumber(action, bigNum, memory, memoryRemainder))
     {
         string parse;
         bool invalidInput = false;
         for(unsigned int i = 0; i < 2; ++i)
         {
-            if(ss.eof())
+            if(ss.eof() && op != '!')
             {
                 cout << "Invalid expression.\n";
                 help();
@@ -111,6 +116,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
             case 1:
             {
                 invalidInput = !parseNumber(parse, bigNum2, memory, memoryRemainder);
+                invalidInput = !invalidInput && op == '!';
                 break;
             }
             }
@@ -127,7 +133,10 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
             help();
             return;
         }
-        performOperation(bigNum, op, bigNum2, bigNumAns, bigNumAnsRemainder);
+        if(!performOperation(bigNum, op, bigNum2, bigNumAns, bigNumAnsRemainder))
+        {
+            return;
+        }
         cout << "Output: ";
         outputNumber(cout, bigNumAns);
         cout << " remainder: ";
@@ -213,7 +222,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     }
     if(action == "GCD")
     {
-        cout << "gcd";
+        gcd(bigNum, bigNum2, bigNumAns);
     }
     if(action == "SHOW")
     {
@@ -256,6 +265,16 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     }
     if(action == "EDIT")
     {
+        char memoryToEdit;
+        ss >> memoryToEdit;
+        ss >> ws;
+        if(!ss.eof())
+        {
+            cout << "Invalid Expression.\n";
+            help();
+            return;
+        }
+        cout << "edit\n";
         return;
     }
     if(action == "EXIT" || action == "QUIT")
@@ -294,7 +313,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     return;
 }
 
-void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &binNumAnsRemainder)
+bool performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &binNumAnsRemainder)
 {
     removeLeadingZero(bigNum);
     removeLeadingZero(bigNum2);
@@ -317,7 +336,10 @@ void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2,
     }
     case '/':
     {
-        divide(bigNum, bigNum2, bigNumAns, binNumAnsRemainder);
+        if(!divide(bigNum, bigNum2, bigNumAns, binNumAnsRemainder))
+        {
+            return false;
+        }
         break;
     }
     case '!':
@@ -330,6 +352,7 @@ void performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2,
         cout << "Unknown operator.\n";
     }
     }
+    return true;
 }
 
 bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> memory[], const vector<byte> memoryRemainder[])
@@ -496,11 +519,10 @@ void multiply(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns
     }
 }
 
-void divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
+bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
 {
     bigNumAns.resize(1);
     bigNumAns[0] = 0;
-    bigNumAnsRemainder.resize(0);
     int negative = 1;
     if(isNegative(bigNum))
     {
@@ -512,6 +534,17 @@ void divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, 
         bigNum2[bigNum2.size() - 1] *= -1;
         negative *= -1;
     }
+    if(equals(bigNum2, vector<byte>(1, 0)))
+    {
+        cout << "Error, division by zero.\n";
+        return false;
+    }
+    if(equals(bigNum2, vector<byte>(1, 1)))
+    {
+        bigNumAns = bigNum;
+        return true;
+    }
+    bigNumAnsRemainder.resize(0);
     bigNumAnsRemainder = bigNum;
     while(greaterThanEquals(bigNumAnsRemainder, bigNum2))
     {
