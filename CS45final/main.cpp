@@ -82,6 +82,7 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         cout << " remainder: ";
         outputNumber(cout, bigNumAnsRemainder);
         cout << endl;
+        return;
     }
     ss << line;
     ss >> action;
@@ -104,29 +105,26 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
                 cout << " remainder: ";
                 outputNumber(cout, bigNumAnsRemainder);
                 cout << endl;
+                saved = false;
+                return;
             }
             cout << "done\n";
-            saved = false;
         }
-        else
-        {
-            cout << "Invalid expression.\n";
-            return;
-        }
+        cout << "Invalid expression.\n";
         return;
     }
-    if(action == "C")
-    {
-        cout << "c";
-    }
-    if(action == "P")
-    {
-        cout << "P";
-    }
-    if(action == "GCD")
-    {
-        //gcd(bigNum, bigNum2, bigNumAns);
-    }
+//    if(action == "C")
+//    {
+//        cout << "c";
+//    }
+//    if(action == "P")
+//    {
+//        cout << "P";
+//    }
+//    if(action == "GCD")
+//    {
+//        //gcd(bigNum, bigNum2, bigNumAns);
+//    }
     if(action == "SHOW")
     {
         char memLocation;
@@ -227,6 +225,10 @@ bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const c
 {
     removeLeadingZero(bigNum);
     removeLeadingZero(bigNum2);
+    if(greaterThan(bigNumRemainder, vector<byte>(1, 0)) || greaterThan(bigNum2Remainder, vector<byte>(1, 0)))
+    {
+        return false;
+    }
     switch(op)
     {
     case '+':
@@ -246,7 +248,7 @@ bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const c
     }
     case '/':
     {
-        if(!divide(bigNum, bigNum2, bigNumAns, bigNumAnsRemainder))
+        if(!divide(bigNum, bigNum2, bigNumAns, bigNumAnsRemainder/*, vector<byte>(1, 1)*/))
         {
             return false;
         }
@@ -255,6 +257,21 @@ bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const c
     case '!':
     {
         factorial(bigNum, bigNumAns);
+        break;
+    }
+    case 'C':
+    {
+        combinations(bigNum, bigNum2, bigNumAns, bigNumRemainder);
+        break;
+    }
+    case 'P':
+    {
+        permutations(bigNum, bigNum2, bigNumAns, bigNumRemainder);
+        break;
+    }
+    case 'G':
+    {
+        gcd(bigNum, bigNum2, bigNumAns);
         break;
     }
     default:
@@ -273,30 +290,53 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
     vector<byte> bigNum2Remainder;
     stringstream ss;
     string action;
-    char op;
+    char op = 0;
     size_t functionFound;
     ss << line;
     ss >> action;
-    if((functionFound = ss.str().find_first_of("(")) != string::npos)
+    if((functionFound = line.find_first_of("(")) != string::npos)
     {
-        action = ss.str().substr(0, functionFound);
-        ss.ignore(functionFound);
+        size_t pos = 0;
+        op = line.substr(0, functionFound)[0];
+        if((pos = line.find(',')) == string::npos)
+        {
+            return false;
+        }
+        line.replace(line.find(','), 1, 1, ' ');
+        if((pos = line.find_last_of(')')) == string::npos)
+        {
+            return false;
+        }
+        line.erase(line.find_last_of(')'), 1);
+        ss.clear();
+        ss.str("");
+        ss << line;
+        ss.ignore(functionFound + 1);
+        ss >> action;
     }
-    if((functionFound = action.find_first_of("!")) != string::npos)
+    else
     {
-        action = action.substr(0, functionFound);
-        ss.putback('!');
+        if((functionFound = action.find_first_of("!")) != string::npos)
+        {
+            action = action.substr(0, functionFound);
+            ss.putback('!');
+        }
     }
     if(parseNumber(action, bigNum, bigNumRemainder, memory))
     {
+        if(ss.eof())
+        {
+            bigNumAns = bigNum;
+            return true;
+        }
         string parse;
         bool invalidInput = false;
         for(unsigned int i = 0; i < 2; ++i)
         {
-            if(ss.eof() && op != '!')
+            if(ss.eof() && op != '!' && !isalpha(op))
             {
-//                cout << "Invalid expression.\n";
-//                help();
+                cout << "Invalid expression.\n";
+                help();
                 return false;
             }
             ss >> parse;
@@ -304,35 +344,44 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
             {
             case 0:
             {
-                invalidInput = !parseOperator(parse, op);
+                if(op == 0)
+                {
+                    invalidInput = !parseOperator(parse, op);
+                }
                 break;
             }
             case 1:
             {
                 invalidInput = !parseNumber(parse, bigNum2, bigNum2Remainder, memory);
-                invalidInput = !invalidInput && op == '!';
+                if(invalidInput)
+                {
+                    invalidInput = !invalidInput && (op == '!' || isalpha(op));
+                }
                 break;
             }
             }
             if(invalidInput)
             {
-//                cout << "Invalid Operator or Operand.\n";
-//                help();
+                cout << "Invalid Operator or Operand.\n";
+                help();
                 return false;
             }
         }
         if(!ss.eof())
         {
-//            cout << "Invalid expression.\n";
-//            help();
+            cout << "Invalid expression.\n";
+            help();
             return false;
         }
         if(!performOperation(bigNum, bigNumRemainder, op, bigNum2, bigNum2Remainder, bigNumAns, bigNumAnsRemainder))
         {
-            return true;
+            cout << "Invalid Operand or Operator, unable to calculate.\n";
+            return false;
         }
+        cout << "last\n";
         return true;
     }
+    cout << "heree\n";
     return false;
 }
 
@@ -498,6 +547,7 @@ void multiply(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns
 
 bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
 {
+    vector<byte> test;
     bigNumAns.resize(1);
     bigNumAns[0] = 0;
     int negative = 1;
@@ -523,14 +573,27 @@ bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, 
     }
     bigNumAnsRemainder.resize(0);
     bigNumAnsRemainder = bigNum;
-    while(greaterThanEquals(bigNumAnsRemainder, bigNum2))
+//    multiply(multiplier, vector<byte>(1, 2), multiplier);
+    multiply(bigNum2, vector<byte>(1, 2), test);
+    if(greaterThanEquals(bigNumAnsRemainder, test))
     {
-        subtract(bigNumAnsRemainder, bigNum2, bigNumAnsRemainder);
-        outputNumber(cout, bigNumAnsRemainder);
-        cout << "\n";
-        incrementUp(bigNumAns);
+        divide(bigNumAnsRemainder, test, bigNumAns, bigNumAnsRemainder/*, multiplier*/);
+        multiply(bigNumAns, vector<byte>(1, 2), bigNumAns);
+        cout << "multiply: ";
+        outputNumber(cout, bigNumAns);
+        cout << endl;
     }
+    while(greaterThanEquals(bigNumAnsRemainder, test))
+    {
+        subtract(bigNumAnsRemainder, test, bigNumAnsRemainder);
+        incrementUp(bigNumAns);
+        cout << "while: ";
+        outputNumber(cout, bigNumAns);
+        cout << endl;
+    }
+//    multiply(bigNumAns, multiplier, bigNumAns);
     bigNumAns[bigNumAns.size() - 1] *= negative;
+    return true;
 }
 
 void incrementUp(vector<byte> &bigNumAns)
@@ -539,8 +602,8 @@ void incrementUp(vector<byte> &bigNumAns)
     {
         bigNumAns.push_back(0);
     }
-    unsigned int i = 0;
-    unsigned int end = bigNumAns.size();
+    size_t i = 0;
+    size_t end = bigNumAns.size();
     for(; i < end && !(++bigNumAns[i] %= 10); ++i);
     if(i == end)
     {
@@ -678,6 +741,11 @@ void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vecto
     factorial(bigNum, numerator);
     subtract(bigNum, bigNum2, denominator);
     factorial(denominator, denominator);
+    multiply(bigNum2, denominator, denominator);
+    outputNumber(cout, numerator);
+    cout << endl;
+    outputNumber(cout, denominator);
+    cout << endl;
     divide(numerator, denominator, bigNumAns, bigNumAnsRemainder);
 }
 
@@ -688,7 +756,6 @@ void permutations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vecto
     factorial(bigNum, numerator);
     subtract(bigNum, bigNum2, denominator);
     factorial(denominator, denominator);
-    multiply(bigNum2, denominator, denominator);
     divide(numerator, denominator, bigNumAns, bigNumAnsRemainder);
 }
 
