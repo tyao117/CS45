@@ -11,11 +11,11 @@ using namespace std;
 typedef char byte;
 
 bool getInput(string &line);
-void trim(string &line);
-bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> memory[], const vector<byte> memoryRemainder[]);
+bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[]);
+bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[]);
 bool parseOperator(const string &line, char &op);
-void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[], bool &save);
-bool performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
+void processLine(const string &line, string memory[], vector<byte> memoryRemainder[], bool &save);
+bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const char &op, vector<byte> bigNum2, vector<byte> bigNum2Remainder, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void add(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void subtract(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
 void multiply(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
@@ -32,20 +32,21 @@ void decrement(vector<byte> &bigNumAns);
 void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void permutations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
 void gcd(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns);
-void displayAllMemory(const vector<byte> memory[], const vector<byte> memoryRemainder[]);
+void displayAllMemory(const string memory[]);
 void outputNumber(ostream &out, const vector<byte> &bigNum);
-bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> memoryRemainder[]);
-void saveToFile(const string &fileName, const vector<byte> memory[], const vector<byte> memoryRemainder[]);
-void clearMemories(vector<byte> memory[], vector<byte> memoryRemainder[]);
+bool loadFromFile(const string &fileName, string memory[]);
+void saveToFile(const string &fileName, const string memory[]);
+void clearMemories(string memory[]);
 void help();
 
 int main()
 {
-    vector<byte> memory[26]; //change this into an array of string
+//    vector<byte> memory[26]; //change this into an array of string
     vector<byte> memoryRemainder[26]; //change this into an array of string
+    string memory[26];
     string line;
     bool saved = true;
-    clearMemories(memory, memoryRemainder);
+    clearMemories(memory);
     while(getInput(line))
     {
         processLine(line, memory, memoryRemainder, saved);
@@ -68,140 +69,42 @@ bool getInput(string &line)
     return true;
 }
 
-void processLine(const string &line, vector<byte> memory[], vector<byte> memoryRemainder[], bool &saved)
+void processLine(const string &line, string memory[], vector<byte> memoryRemainder[], bool &saved)
 {
-    vector<byte> bigNum;
-    vector<byte> bigNum2;
     vector<byte> bigNumAns;
     vector<byte> bigNumAnsRemainder = vector<byte>(1, 0);
-    char op;
     stringstream ss;
     string action;
-    unsigned int functionFound;
-    ss << line;
-    if((functionFound = ss.str().find_first_of("(")) < string::npos)
+    if(parseAndPerform(line, bigNumAns, bigNumAnsRemainder, memory))
     {
-        action = ss.str().substr(0, functionFound);
-        ss.ignore(functionFound);
-    }
-    else
-    {
-        ss >> action;
-    }
-    if((functionFound = action.find_first_of("!")) != string::npos)
-    {
-        action = action.substr(0, functionFound);
-        ss.putback('!');
-    }
-    if(parseNumber(action, bigNum, memory, memoryRemainder))
-    {
-        string parse;
-        bool invalidInput = false;
-        for(unsigned int i = 0; i < 2; ++i)
-        {
-            if(ss.eof() && op != '!')
-            {
-                cout << "Invalid expression.\n";
-                help();
-                return;
-            }
-            ss >> parse;
-            switch(i)
-            {
-            case 0:
-            {
-                invalidInput = !parseOperator(parse, op);
-                break;
-            }
-            case 1:
-            {
-                invalidInput = !parseNumber(parse, bigNum2, memory, memoryRemainder);
-                invalidInput = !invalidInput && op == '!';
-                break;
-            }
-            }
-            if(invalidInput)
-            {
-                cout << "Invalid Operator or Operand.\n";
-                help();
-                return;
-            }
-        }
-        if(!ss.eof())
-        {
-            cout << "Invalid expression.\n";
-            help();
-            return;
-        }
-        if(!performOperation(bigNum, op, bigNum2, bigNumAns, bigNumAnsRemainder))
-        {
-            return;
-        }
         cout << "Output: ";
         outputNumber(cout, bigNumAns);
         cout << " remainder: ";
         outputNumber(cout, bigNumAnsRemainder);
         cout << endl;
-        return;
     }
+    ss << line;
+    ss >> action;
     cout << action << endl;
     if(action == "LET")
     {
         char variableStore;
         string parse;
-        bool invalidInput = false;
         ss >> variableStore;
         variableStore =  toupper(variableStore);
-        if(ss.str().find(" = "))
+        if(ss.str().find(" = ") != string::npos)
         {
             ss.ignore(3);
-            for(unsigned int i = 0; i < 3; ++i)
+            getline(ss, parse);
+            if(parseAndPerform(parse, bigNumAns, bigNumAnsRemainder, memory))
             {
-                if(ss.eof())
-                {
-                    cout << "Invalid expression.\n";
-                    help();
-                    return;
-                }
-                ss >> parse;
-                switch(i)
-                {
-                case 0:
-                {
-                    invalidInput = !parseNumber(parse, bigNum, memory, memoryRemainder);
-                    break;
-                }
-                case 1:
-                {
-                    invalidInput = !parseOperator(parse, op);
-                    break;
-                }
-                case 2:
-                {
-                    invalidInput = !parseNumber(parse, bigNum2, memory, memoryRemainder);
-                    invalidInput = !invalidInput && op == '!';
-                    break;
-                }
-                }
-                if(invalidInput)
-                {
-                    cout << "Invalid Operator or Operand.\n";
-                    help();
-                    return;
-                }
+                memory[variableStore - 'A'] = parse;
+                cout << "Output: ";
+                outputNumber(cout, bigNumAns);
+                cout << " remainder: ";
+                outputNumber(cout, bigNumAnsRemainder);
+                cout << endl;
             }
-            if(!ss.eof())
-            {
-                cout << "Invalid expression.\n";
-                help();
-                return;
-            }
-            outputNumber(cout, bigNum);
-            cout << endl;
-            cout << op << endl;
-            outputNumber(cout, bigNum2);
-            cout << endl;
-            performOperation(bigNum, op, bigNum2, memory[variableStore - 'A'], memoryRemainder[variableStore - 'A']);
             cout << "done\n";
             saved = false;
         }
@@ -222,7 +125,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     }
     if(action == "GCD")
     {
-        gcd(bigNum, bigNum2, bigNumAns);
+        //gcd(bigNum, bigNum2, bigNumAns);
     }
     if(action == "SHOW")
     {
@@ -230,9 +133,11 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
         ss >> memLocation;
         if(isalpha(memLocation))
         {
-            outputNumber(cout, memory[toupper(memLocation) - 'A']);
+            parseAndPerform(memory[toupper(memLocation) - 'A'], bigNumAns, bigNumAnsRemainder, memory);
+            cout << "Output: ";
+            outputNumber(cout, bigNumAns);
             cout << " Remainder: ";
-            outputNumber(cout, memoryRemainder[toupper(memLocation) - 'A']);
+            outputNumber(cout, bigNumAnsRemainder);
             cout << endl;
         }
         else
@@ -243,7 +148,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     }
     if(action == "LIST")
     {
-        displayAllMemory(memory, memoryRemainder);
+        displayAllMemory(memory);
         return;
     }
     if(action == "LOAD")
@@ -251,7 +156,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
         string fileName;
         ss >> ws;
         getline(ss, fileName);
-        loadFromFile(fileName, memory, memoryRemainder);
+        loadFromFile(fileName, memory);
         return;
     }
     if(action == "SAVE")
@@ -259,22 +164,27 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
         string fileName;
         ss >> ws;
         getline(ss, fileName);
-        saveToFile(fileName, memory, memoryRemainder);
+        saveToFile(fileName, memory);
         saved = true;
         return;
     }
     if(action == "EDIT")
     {
+        string newExpression;
         char memoryToEdit;
         ss >> memoryToEdit;
         ss >> ws;
-        if(!ss.eof())
+        if(!ss.eof() || !isalpha(memoryToEdit))
         {
             cout << "Invalid Expression.\n";
             help();
             return;
         }
-        cout << "edit\n";
+        cout << "Expression: \n";
+        cout << memory[toupper(memoryToEdit) - 'A'];
+        cout << "New expression: \n";
+        cin >> newExpression;
+        memory[toupper(memoryToEdit) - 'A'] = newExpression;
         return;
     }
     if(action == "EXIT" || action == "QUIT")
@@ -294,7 +204,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
                 cout << "What would you like to save the file name as?\n";
                 cin.ignore();
                 getline(cin, reply);
-                saveToFile(reply, memory, memoryRemainder);
+                saveToFile(reply, memory);
             }
         }
         exit(0);
@@ -305,7 +215,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
         string fileName;
         ss >> ws;
         getline(ss, fileName);
-        saveToFile(fileName, memory, memoryRemainder);
+        saveToFile(fileName, memory);
         exit(0);
         return;
     }
@@ -313,7 +223,7 @@ void processLine(const string &line, vector<byte> memory[], vector<byte> memoryR
     return;
 }
 
-bool performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2, vector<byte> &bigNumAns, vector<byte> &binNumAnsRemainder)
+bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const char &op, vector<byte> bigNum2, vector<byte> bigNum2Remainder, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
 {
     removeLeadingZero(bigNum);
     removeLeadingZero(bigNum2);
@@ -336,7 +246,7 @@ bool performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2,
     }
     case '/':
     {
-        if(!divide(bigNum, bigNum2, bigNumAns, binNumAnsRemainder))
+        if(!divide(bigNum, bigNum2, bigNumAns, bigNumAnsRemainder))
         {
             return false;
         }
@@ -355,16 +265,83 @@ bool performOperation(vector<byte> bigNum, const char &op, vector<byte> bigNum2,
     return true;
 }
 
-bool parseNumber(const string &line, vector<byte> &bigNum, const vector<byte> memory[], const vector<byte> memoryRemainder[])
+bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[])
+{
+    vector<byte> bigNum;
+    vector<byte> bigNumRemainder;
+    vector<byte> bigNum2;
+    vector<byte> bigNum2Remainder;
+    stringstream ss;
+    string action;
+    char op;
+    size_t functionFound;
+    ss << line;
+    ss >> action;
+    if((functionFound = ss.str().find_first_of("(")) != string::npos)
+    {
+        action = ss.str().substr(0, functionFound);
+        ss.ignore(functionFound);
+    }
+    if((functionFound = action.find_first_of("!")) != string::npos)
+    {
+        action = action.substr(0, functionFound);
+        ss.putback('!');
+    }
+    if(parseNumber(action, bigNum, bigNumRemainder, memory))
+    {
+        string parse;
+        bool invalidInput = false;
+        for(unsigned int i = 0; i < 2; ++i)
+        {
+            if(ss.eof() && op != '!')
+            {
+//                cout << "Invalid expression.\n";
+//                help();
+                return false;
+            }
+            ss >> parse;
+            switch(i)
+            {
+            case 0:
+            {
+                invalidInput = !parseOperator(parse, op);
+                break;
+            }
+            case 1:
+            {
+                invalidInput = !parseNumber(parse, bigNum2, bigNum2Remainder, memory);
+                invalidInput = !invalidInput && op == '!';
+                break;
+            }
+            }
+            if(invalidInput)
+            {
+//                cout << "Invalid Operator or Operand.\n";
+//                help();
+                return false;
+            }
+        }
+        if(!ss.eof())
+        {
+//            cout << "Invalid expression.\n";
+//            help();
+            return false;
+        }
+        if(!performOperation(bigNum, bigNumRemainder, op, bigNum2, bigNum2Remainder, bigNumAns, bigNumAnsRemainder))
+        {
+            return true;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[])
 {
     if(line.length() == 1 && isalpha(line[0]))
     {
         int memoryLocation = toupper(line[0]) - 'A';
-        if(greaterThan(memoryRemainder[memoryLocation], vector<byte>(1, 0)))
-        {
-            return false;
-        }
-        bigNum = memory[memoryLocation];
+        parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory);
         return true;
     }
     for(unsigned int i = line.length(); i > 0;)
@@ -731,15 +708,18 @@ void gcd(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns)
     return;
 }
 
-void displayAllMemory(const vector<byte> memory[], const vector<byte> memoryRemainder[])
+void displayAllMemory(const string memory[])
 {
+//    vector<byte> bigNum;
+//    vector<byte> bigNumRemainder;
     for(int i = 0; i < 26; ++i)
     {
         cout << char(i+65) << " = ";
-        outputNumber(cout, memory[i]);
-        cout << " Remainder: ";
-        outputNumber(cout, memoryRemainder[i]);
-        cout << endl;
+        cout << memory[i] << endl;
+//        outputNumber(cout, bigNum);
+//        cout << " Remainder: ";
+//        outputNumber(cout, bigNumRemainder);
+//        cout << endl;
     }
 }
 
@@ -762,9 +742,9 @@ void outputNumber(ostream &out, const vector<byte> &bigNum)
 //    }
 }
 
-bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> memoryRemainder[])
+bool loadFromFile(const string &fileName, string memory[])
 {
-    clearMemories(memory, memoryRemainder);
+    clearMemories(memory);
     ifstream infile;
     string number;
     size_t remainderPos;
@@ -776,40 +756,39 @@ bool loadFromFile(const string &fileName, vector<byte> memory[], vector<byte> me
     }
     for(int i = 0; !infile.eof() && i < 26; ++i)
     {
-        getline(infile, number);
-        remainderPos = number.find_first_of(" ");
-        parseNumber(number.substr(0, remainderPos), memory[i], memory, memoryRemainder);
-        if(remainderPos < string::npos)
-        {
-            parseNumber(number.substr(remainderPos), memoryRemainder[i], memory, memoryRemainder);
-        }
+        getline(infile, memory[i]);
+//        getline(infile, number);
+//        remainderPos = number.find_first_of(" ");
+//        parseNumber(number.substr(0, remainderPos), memory[i], memory);
+//        if(remainderPos < string::npos)
+//        {
+//            parseNumber(number.substr(remainderPos), memoryRemainder[i], memory, memoryRemainder);
+//        }
     }
     infile.close();
     return true;
 }
 
-void saveToFile(const string &fileName, const vector<byte> memory[], const vector<byte> memoryRemainder[])
+void saveToFile(const string &fileName, const string memory[])
 {
     ofstream outfile;
     outfile.open(fileName.c_str());
     for(int i = 0; i < 26; ++i)
     {
-        outputNumber(outfile, memory[i]);
-        outfile << " ";
-        outputNumber(outfile, memoryRemainder[i]);
+        outfile << memory[i] << endl;
+//        outputNumber(outfile, memory[i]);
+//        outfile << " ";
+//        outputNumber(outfile, memoryRemainder[i]);
     }
     outfile.close();
     return;
 }
 
-void clearMemories(vector<byte> memory[], vector<byte> memoryRemainder[])
+void clearMemories(string memory[])
 {
     for(unsigned int i = 0; i < 26; ++i)
     {
-        memory[i].resize(1);
-        memory[i][0] = 0;
-        memoryRemainder[i].resize(1);
-        memoryRemainder[i][0] = 0;
+        memory[i] = "";
     }
 }
 
