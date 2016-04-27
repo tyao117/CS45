@@ -113,18 +113,6 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         cout << "Invalid expression.\n";
         return;
     }
-//    if(action == "C")
-//    {
-//        cout << "c";
-//    }
-//    if(action == "P")
-//    {
-//        cout << "P";
-//    }
-//    if(action == "GCD")
-//    {
-//        //gcd(bigNum, bigNum2, bigNumAns);
-//    }
     if(action == "SHOW")
     {
         char memLocation;
@@ -574,22 +562,26 @@ bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, 
     bigNumAnsRemainder.resize(0);
     bigNumAnsRemainder = bigNum;
 //    multiply(multiplier, vector<byte>(1, 2), multiplier);
-    multiply(bigNum2, vector<byte>(1, 2), test);
-    if(greaterThanEquals(bigNumAnsRemainder, test))
+
+    if(greaterThanEquals(bigNumAnsRemainder, bigNum2))
     {
+        multiply(bigNum2, vector<byte>(1, 2), test);
+//        cout << "in" << endl;
         divide(bigNumAnsRemainder, test, bigNumAns, bigNumAnsRemainder/*, multiplier*/);
         multiply(bigNumAns, vector<byte>(1, 2), bigNumAns);
-        cout << "multiply: ";
-        outputNumber(cout, bigNumAns);
-        cout << endl;
+//        cout << "multiply: ";
+//        outputNumber(cout, bigNumAns);
+//        cout << endl;
     }
-    while(greaterThanEquals(bigNumAnsRemainder, test))
+    while(greaterThanEquals(bigNumAnsRemainder, bigNum2))
     {
-        subtract(bigNumAnsRemainder, test, bigNumAnsRemainder);
+        subtract(bigNumAnsRemainder, bigNum2, bigNumAnsRemainder);
         incrementUp(bigNumAns);
-        cout << "while: ";
-        outputNumber(cout, bigNumAns);
-        cout << endl;
+//        cout << "while sub: ";
+//        outputNumber(cout, test);
+//        cout << "while: ";
+//        outputNumber(cout, bigNumAns);
+//        cout << endl;
     }
 //    multiply(bigNumAns, multiplier, bigNumAns);
     bigNumAns[bigNumAns.size() - 1] *= negative;
@@ -738,14 +730,16 @@ void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vecto
 {
     vector<byte> numerator;
     vector<byte> denominator;
+    vector<byte> denominator2;
     factorial(bigNum, numerator);
     subtract(bigNum, bigNum2, denominator);
     factorial(denominator, denominator);
-    multiply(bigNum2, denominator, denominator);
-    outputNumber(cout, numerator);
-    cout << endl;
-    outputNumber(cout, denominator);
-    cout << endl;
+    factorial(bigNum2, denominator2);
+    multiply(denominator2, denominator, denominator);
+//    outputNumber(cout, numerator);
+//    cout << endl;
+//    outputNumber(cout, denominator);
+//    cout << endl;
     divide(numerator, denominator, bigNumAns, bigNumAnsRemainder);
 }
 
