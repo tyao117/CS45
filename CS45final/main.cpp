@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,8 +12,8 @@ using namespace std;
 typedef char byte;
 
 bool getInput(string &line);
-bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[]);
-bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[]);
+bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[], int &recursionCounter);
+bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[], int &recursionCounter);
 bool parseOperator(const string &line, char &op);
 void processLine(const string &line, string memory[], vector<byte> memoryRemainder[], bool &save);
 bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const char &op, vector<byte> bigNum2, vector<byte> bigNum2Remainder, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
@@ -47,8 +48,9 @@ int main()
     string line;
     bool saved = true;
     clearMemories(memory);
-    while(getInput(line))
+    while(true)
     {
+        getInput(line);
         processLine(line, memory, memoryRemainder, saved);
     }
     return 0;
@@ -75,7 +77,8 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
     vector<byte> bigNumAnsRemainder = vector<byte>(1, 0);
     stringstream ss;
     string action;
-    if(parseAndPerform(line, bigNumAns, bigNumAnsRemainder, memory))
+    int recursionCounter = 0;
+    if(parseAndPerform(line, bigNumAns, bigNumAnsRemainder, memory, recursionCounter))
     {
         cout << "Output: ";
         outputNumber(cout, bigNumAns);
@@ -84,9 +87,12 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         cout << endl;
         return;
     }
+    if(recursionCounter > 50)
+    {
+        return;
+    }
     ss << line;
     ss >> action;
-    cout << action << endl;
     if(action == "LET")
     {
         char variableStore;
@@ -97,8 +103,17 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         {
             ss.ignore(3);
             getline(ss, parse);
-            if(parseAndPerform(parse, bigNumAns, bigNumAnsRemainder, memory))
+            if(!memory[variableStore - 'A'].empty())
             {
+                cout << "Memory already ocuppied. In order to edit or erase use EDIT.\n";
+                return;
+            }
+            else if(parseAndPerform(parse, bigNumAns, bigNumAnsRemainder, memory, recursionCounter))
+            {
+                if(recursionCounter > 50)
+                {
+                    return;
+                }
                 memory[variableStore - 'A'] = parse;
                 cout << "Output: ";
                 outputNumber(cout, bigNumAns);
@@ -108,7 +123,6 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
                 saved = false;
                 return;
             }
-            cout << "done\n";
         }
         cout << "Invalid expression.\n";
         return;
@@ -119,7 +133,7 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         ss >> memLocation;
         if(isalpha(memLocation))
         {
-            parseAndPerform(memory[toupper(memLocation) - 'A'], bigNumAns, bigNumAnsRemainder, memory);
+            parseAndPerform(memory[toupper(memLocation) - 'A'], bigNumAns, bigNumAnsRemainder, memory, recursionCounter);
             cout << "Output: ";
             outputNumber(cout, bigNumAns);
             cout << " Remainder: ";
@@ -166,10 +180,11 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
             help();
             return;
         }
-        cout << "Expression: \n";
-        cout << memory[toupper(memoryToEdit) - 'A'];
+        cout << "Expression: ";
+        cout << memory[toupper(memoryToEdit) - 'A'] << endl;
         cout << "New expression: \n";
-        cin >> newExpression;
+        getline(cin, newExpression);
+        fflush(stdin);
         memory[toupper(memoryToEdit) - 'A'] = newExpression;
         return;
     }
@@ -270,7 +285,7 @@ bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const c
     return true;
 }
 
-bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[])
+bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[], int &recursionCounter)
 {
     vector<byte> bigNum;
     vector<byte> bigNumRemainder;
@@ -280,6 +295,11 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
     string action;
     char op = 0;
     size_t functionFound;
+    if(++recursionCounter > 50)
+    {
+        cout << "Near infinate or infinate recursion.\n";
+        return false;
+    }
     ss << line;
     ss >> action;
     if((functionFound = line.find_first_of("(")) != string::npos)
@@ -310,7 +330,7 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
             ss.putback('!');
         }
     }
-    if(parseNumber(action, bigNum, bigNumRemainder, memory))
+    if(parseNumber(action, bigNum, bigNumRemainder, memory, recursionCounter))
     {
         if(ss.eof())
         {
@@ -340,7 +360,7 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
             }
             case 1:
             {
-                invalidInput = !parseNumber(parse, bigNum2, bigNum2Remainder, memory);
+                invalidInput = !parseNumber(parse, bigNum2, bigNum2Remainder, memory, recursionCounter);
                 if(invalidInput)
                 {
                     invalidInput = !invalidInput && (op == '!' || isalpha(op));
@@ -366,19 +386,17 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
             cout << "Invalid Operand or Operator, unable to calculate.\n";
             return false;
         }
-        cout << "last\n";
         return true;
     }
-    cout << "heree\n";
     return false;
 }
 
-bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[])
+bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[], int &recursionCounter)
 {
     if(line.length() == 1 && isalpha(line[0]))
     {
         int memoryLocation = toupper(line[0]) - 'A';
-        parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory);
+        parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory, recursionCounter);
         return true;
     }
     for(unsigned int i = line.length(); i > 0;)
@@ -561,29 +579,17 @@ bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, 
     }
     bigNumAnsRemainder.resize(0);
     bigNumAnsRemainder = bigNum;
-//    multiply(multiplier, vector<byte>(1, 2), multiplier);
-
     if(greaterThanEquals(bigNumAnsRemainder, bigNum2))
     {
         multiply(bigNum2, vector<byte>(1, 2), test);
-//        cout << "in" << endl;
-        divide(bigNumAnsRemainder, test, bigNumAns, bigNumAnsRemainder/*, multiplier*/);
+        divide(bigNumAnsRemainder, test, bigNumAns, bigNumAnsRemainder);
         multiply(bigNumAns, vector<byte>(1, 2), bigNumAns);
-//        cout << "multiply: ";
-//        outputNumber(cout, bigNumAns);
-//        cout << endl;
     }
     while(greaterThanEquals(bigNumAnsRemainder, bigNum2))
     {
         subtract(bigNumAnsRemainder, bigNum2, bigNumAnsRemainder);
         incrementUp(bigNumAns);
-//        cout << "while sub: ";
-//        outputNumber(cout, test);
-//        cout << "while: ";
-//        outputNumber(cout, bigNumAns);
-//        cout << endl;
     }
-//    multiply(bigNumAns, multiplier, bigNumAns);
     bigNumAns[bigNumAns.size() - 1] *= negative;
     return true;
 }
@@ -736,10 +742,6 @@ void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vecto
     factorial(denominator, denominator);
     factorial(bigNum2, denominator2);
     multiply(denominator2, denominator, denominator);
-//    outputNumber(cout, numerator);
-//    cout << endl;
-//    outputNumber(cout, denominator);
-//    cout << endl;
     divide(numerator, denominator, bigNumAns, bigNumAnsRemainder);
 }
 
@@ -771,36 +773,23 @@ void gcd(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns)
 
 void displayAllMemory(const string memory[])
 {
-//    vector<byte> bigNum;
-//    vector<byte> bigNumRemainder;
     for(int i = 0; i < 26; ++i)
     {
         cout << char(i+65) << " = ";
         cout << memory[i] << endl;
-//        outputNumber(cout, bigNum);
-//        cout << " Remainder: ";
-//        outputNumber(cout, bigNumRemainder);
-//        cout << endl;
     }
 }
 
 void outputNumber(ostream &out, const vector<byte> &bigNum)
 {
-//    if(bigNum.size())
-//    {
-        for(int i = bigNum.size(); i > 0;)
+    for(int i = bigNum.size(); i > 0;)
+    {
+        out << (short int)bigNum[--i];
+        if(!(i % 3) && i)
         {
-            out << (short int)bigNum[--i];
-            if(!(i % 3) && i)
-            {
-                out << ",";
-            }
+            out << ",";
         }
-//    }
-//    else
-//    {
-//        cout << "Nothing is here";
-//    }
+    }
 }
 
 bool loadFromFile(const string &fileName, string memory[])
