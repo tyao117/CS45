@@ -98,6 +98,11 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         char variableStore;
         string parse;
         ss >> variableStore;
+        if(!isalpha(variableStore))
+        {
+            cout<<"There was no letter"<<endl;
+            return;
+        }
         variableStore =  toupper(variableStore);
         if(ss.str().find(" = ") != string::npos)
         {
@@ -173,6 +178,11 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         string newExpression;
         char memoryToEdit;
         ss >> memoryToEdit;
+        if(!isalpha(memoryToEdit))
+        {
+            cout<<"There was no letter"<<endl;
+            return;
+        }
         ss >> ws;
         if(!ss.eof() || !isalpha(memoryToEdit))
         {
