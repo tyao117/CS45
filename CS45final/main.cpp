@@ -51,7 +51,10 @@ int main()
     while(true)
     {
         getInput(line);
-        processLine(line, memory, memoryRemainder, saved);
+        if(!line.empty())
+        {
+            processLine(line, memory, memoryRemainder, saved);
+        }
     }
     return 0;
 }
@@ -97,6 +100,7 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
     {
         char variableStore;
         string parse;
+        size_t equalSignPos;
         ss >> variableStore;
         if(!isalpha(variableStore))
         {
@@ -104,9 +108,9 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
             return;
         }
         variableStore =  toupper(variableStore);
-        if(ss.str().find(" = ") != string::npos)
+        if((equalSignPos = ss.str().find(" = ")) != string::npos)
         {
-            ss.ignore(3);
+            ss.ignore(2);
             getline(ss, parse);
             if(!memory[variableStore - 'A'].empty())
             {
@@ -115,10 +119,6 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
             }
             else if(parseAndPerform(parse, bigNumAns, bigNumAnsRemainder, memory, recursionCounter))
             {
-                if(recursionCounter > 50)
-                {
-                    return;
-                }
                 memory[variableStore - 'A'] = parse;
                 cout << "Output: ";
                 outputNumber(cout, bigNumAns);
@@ -138,12 +138,14 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         ss >> memLocation;
         if(isalpha(memLocation))
         {
-            parseAndPerform(memory[toupper(memLocation) - 'A'], bigNumAns, bigNumAnsRemainder, memory, recursionCounter);
-            cout << "Output: ";
-            outputNumber(cout, bigNumAns);
-            cout << " Remainder: ";
-            outputNumber(cout, bigNumAnsRemainder);
-            cout << endl;
+            if(parseAndPerform(memory[toupper(memLocation) - 'A'], bigNumAns, bigNumAnsRemainder, memory, recursionCounter))
+            {
+                cout << "Output: ";
+                outputNumber(cout, bigNumAns);
+                cout << " Remainder: ";
+                outputNumber(cout, bigNumAnsRemainder);
+                cout << endl;
+            }
         }
         else
         {
@@ -290,6 +292,7 @@ bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const c
     default:
     {
         cout << "Unknown operator.\n";
+        return false;
     }
     }
     return true;
@@ -406,8 +409,7 @@ bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumR
     if(line.length() == 1 && isalpha(line[0]))
     {
         int memoryLocation = toupper(line[0]) - 'A';
-        parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory, recursionCounter);
-        return true;
+        return parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory, recursionCounter);
     }
     for(unsigned int i = line.length(); i > 0;)
     {
@@ -817,13 +819,6 @@ bool loadFromFile(const string &fileName, string memory[])
     for(int i = 0; !infile.eof() && i < 26; ++i)
     {
         getline(infile, memory[i]);
-//        getline(infile, number);
-//        remainderPos = number.find_first_of(" ");
-//        parseNumber(number.substr(0, remainderPos), memory[i], memory);
-//        if(remainderPos < string::npos)
-//        {
-//            parseNumber(number.substr(remainderPos), memoryRemainder[i], memory, memoryRemainder);
-//        }
     }
     infile.close();
     return true;
@@ -836,9 +831,6 @@ void saveToFile(const string &fileName, const string memory[])
     for(int i = 0; i < 26; ++i)
     {
         outfile << memory[i] << endl;
-//        outputNumber(outfile, memory[i]);
-//        outfile << " ";
-//        outputNumber(outfile, memoryRemainder[i]);
     }
     outfile.close();
     return;
