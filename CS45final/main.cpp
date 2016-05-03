@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -580,11 +581,6 @@ bool divide(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns, 
     {
         cout << "Error, division by zero.\n";
         return false;
-    }
-    if(equals(bigNum2, vector<byte>(1, 1)))
-    {
-        bigNumAns = bigNum;
-        return true;
     }
     bigNumAnsRemainder.resize(0);
     bigNumAnsRemainder = bigNum;
