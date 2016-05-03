@@ -110,7 +110,7 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
             getline(ss, parse);
             if(!memory[variableStore - 'A'].empty())
             {
-                cout << "Memory already ocuppied. In order to edit or erase use EDIT.\n";
+                cout << "Memory already occupied. In order to edit or erase use EDIT.\n";
                 return;
             }
             else if(parseAndPerform(parse, bigNumAns, bigNumAnsRemainder, memory, recursionCounter))
@@ -854,14 +854,22 @@ void clearMemories(string memory[])
 
 void help()
 {
-    cout << "Help!!!\n";
+    cout << "**Welcome to the help menu**\n";
     cout <<"List of actions:\n"
+         <<"[Expression]: Compute out an expression\n"
+         <<"LET [A-Z] [Expression]: Set a memory not already present\n"
          <<"LIST: List all the save memorys\n"
          <<"SET [A-Z] [Expression]: Sets the value of the memory\n"
-         <<"EDIT [A-Z] [Expression]: TBC\n"
+         <<"EDIT [A-Z] [Expression]: Edits a current expression\n"
          <<"SHOW [A-Z]: Shows the current value of the memory\n"
-         <<"SAVE [filename]: saves the memories to the file to the filename\n"
+         <<"SAVE [filename]: saves the memories to a filename listed\n"
          <<"LOAD [filename]: loads the memories from the filename to the program\n"
+         <<"The following operators can be used:"
+         <<"[1]_+_[2]\n"
+         <<"[1]_-_[2]\n"
+         <<"[1]_*_[2]\n"
+         <<"[1]_/_[2]\n"
+         <<"[1]!\n"
          <<"\n"
          <<endl;
 }
