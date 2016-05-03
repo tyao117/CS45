@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -744,6 +743,11 @@ void decrement(vector<byte> &bigNumAns)
 
 void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
 {
+    if (!greaterThanEquals(bigNum, bigNum2))
+    {
+        cout<<"[1] has to be bigger than or equal to [2]"<<endl;
+        return;
+    }
     vector<byte> numerator;
     vector<byte> denominator;
     vector<byte> denominator2;
@@ -757,6 +761,11 @@ void combinations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vecto
 
 void permutations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder)
 {
+    if (!greaterThanEquals(bigNum, bigNum2))
+    {
+        cout<<"[1] has to be bigger than or equal to [2]"<<endl;
+        return;
+    }
     vector<byte> numerator;
     vector<byte> denominator;
     factorial(bigNum, numerator);
@@ -767,6 +776,11 @@ void permutations(const vector<byte> &bigNum, const vector<byte> &bigNum2, vecto
 
 void gcd(vector<byte> bigNum, vector<byte> bigNum2, vector<byte> &bigNumAns)
 {
+    if (!greaterThanEquals(bigNum, bigNum2))
+    {
+        cout<<"[1] has to be bigger than or equal to [2]"<<endl;
+        return;
+    }
     vector<byte> numbers[2] = {bigNum, bigNum2};
     vector<byte> junk;
     unsigned int i = 0;
@@ -854,8 +868,8 @@ void clearMemories(string memory[])
 
 void help()
 {
-    cout << "**Welcome to the help menu**\n";
-    cout <<"List of actions:\n"
+    cout << "**Welcome to the help menu**\n"
+         <<"List of actions:\n"
          <<"[Expression]: Compute out an expression\n"
          <<"LET [A-Z] [Expression]: Set a memory not already present\n"
          <<"LIST: List all the save memorys\n"
@@ -870,6 +884,10 @@ void help()
          <<"[1]_*_[2]\n"
          <<"[1]_/_[2]\n"
          <<"[1]!\n"
+         <<"P([1],[2])| [1] has to be bigger than or equal to [2]\n"
+         <<"C([1],[2])| [1] has to be bigger than or equal to [2]\n"
+         <<"GCD([1],[2])| [1] has to be bigger than or equal to [2]\n"
          <<"\n"
          <<endl;
 }
+
