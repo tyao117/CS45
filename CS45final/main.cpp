@@ -12,8 +12,8 @@ using namespace std;
 typedef char byte;
 
 bool getInput(string &line);
-bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[], int &recursionCounter);
-bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[], int &recursionCounter);
+bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[], int memToRetrieveFrom);
+bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[], int memToRetrieveFrom);
 bool parseOperator(const string &line, char &op);
 void processLine(const string &line, string memory[], vector<byte> memoryRemainder[], bool &save);
 bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const char &op, vector<byte> bigNum2, vector<byte> bigNum2Remainder, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder);
@@ -88,10 +88,6 @@ void processLine(const string &line, string memory[], vector<byte> memoryRemaind
         cout << " remainder: ";
         outputNumber(cout, bigNumAnsRemainder);
         cout << endl;
-        return;
-    }
-    if(recursionCounter > 50)
-    {
         return;
     }
     ss << line;
@@ -298,7 +294,7 @@ bool performOperation(vector<byte> bigNum, vector<byte> bigNumRemainder, const c
     return true;
 }
 
-bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[], int &recursionCounter)
+bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumAnsRemainder, const string memory[], int memToRetrieveFrom)
 {
     vector<byte> bigNum;
     vector<byte> bigNumRemainder;
@@ -308,11 +304,6 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
     string action;
     char op = 0;
     size_t functionFound;
-    if(++recursionCounter > 50)
-    {
-        cout << "Near infinate or infinate recursion.\n";
-        return false;
-    }
     ss << line;
     ss >> action;
     if((functionFound = line.find_first_of("(")) != string::npos)
@@ -343,7 +334,7 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
             ss.putback('!');
         }
     }
-    if(parseNumber(action, bigNum, bigNumRemainder, memory, recursionCounter))
+    if(parseNumber(action, bigNum, bigNumRemainder, memory, memToRetrieveFrom))
     {
         if(ss.eof())
         {
@@ -373,7 +364,7 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
             }
             case 1:
             {
-                invalidInput = !parseNumber(parse, bigNum2, bigNum2Remainder, memory, recursionCounter);
+                invalidInput = !parseNumber(parse, bigNum2, bigNum2Remainder, memory, memToRetrieveFrom);
                 if(invalidInput)
                 {
                     invalidInput = !invalidInput && (op == '!' || isalpha(op));
@@ -404,12 +395,19 @@ bool parseAndPerform(string line, vector<byte> &bigNumAns, vector<byte> &bigNumA
     return false;
 }
 
-bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[], int &recursionCounter)
+bool parseNumber(const string &line, vector<byte> &bigNum, vector<byte> &bigNumRemainder, const string memory[], int memToRetrieveFrom)
 {
     if(line.length() == 1 && isalpha(line[0]))
     {
         int memoryLocation = toupper(line[0]) - 'A';
-        return parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory, recursionCounter);
+        int mask = 1 << memoryLocation;
+        if((memToRetrieveFrom & mask) == 0)
+        {
+            memToRetrieveFrom |= mask;
+            return parseAndPerform(memory[memoryLocation], bigNum, bigNumRemainder, memory, memToRetrieveFrom);
+        }
+        cout << "Infinite recursion!\n";
+        return false;
     }
     for(unsigned int i = line.length(); i > 0;)
     {
@@ -819,6 +817,13 @@ bool loadFromFile(const string &fileName, string memory[])
     for(int i = 0; !infile.eof() && i < 26; ++i)
     {
         getline(infile, memory[i]);
+//        getline(infile, number);
+//        remainderPos = number.find_first_of(" ");
+//        parseNumber(number.substr(0, remainderPos), memory[i], memory);
+//        if(remainderPos < string::npos)
+//        {
+//            parseNumber(number.substr(remainderPos), memoryRemainder[i], memory, memoryRemainder);
+//        }
     }
     infile.close();
     return true;
@@ -831,6 +836,9 @@ void saveToFile(const string &fileName, const string memory[])
     for(int i = 0; i < 26; ++i)
     {
         outfile << memory[i] << endl;
+//        outputNumber(outfile, memory[i]);
+//        outfile << " ";
+//        outputNumber(outfile, memoryRemainder[i]);
     }
     outfile.close();
     return;
