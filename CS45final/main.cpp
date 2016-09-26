@@ -705,6 +705,7 @@ void factorial(vector<byte> bigNum, vector<byte> &bigNumAns)
     if(equals(bigNum, vector<byte>(1, 0)))
     {
         bigNumAns = vector<byte>(1, 1);
+        return;
     }
     bigNumAns = bigNum;
     while(greaterThan(bigNum, vector<byte>(1, 1)))
@@ -874,7 +875,7 @@ void help()
          <<"SHOW [A-Z]: Shows the current value of the memory\n"
          <<"SAVE [filename]: saves the memories to a filename listed\n"
          <<"LOAD [filename]: loads the memories from the filename to the program\n"
-         <<"The following operators can be used:"
+         <<"The following operators can be used:\n"
          <<"[1]_+_[2]\n"
          <<"[1]_-_[2]\n"
          <<"[1]_*_[2]\n"
